@@ -3,14 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Storage;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Vault;
 
 class User extends Authenticatable
 {
@@ -52,5 +49,14 @@ class User extends Authenticatable
         'email' => 'required|string|email|max:255|unique:users',
         'password' => 'required|string|min:8|confirmed',
     ];
+
+
+    /**
+     * Get the vaults for the user.
+     */
+    public function vaults()
+    {
+        return $this->hasMany(Vault::class, 'user_id');
+    }
 
 }

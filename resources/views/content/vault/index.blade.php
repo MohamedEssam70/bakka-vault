@@ -4,6 +4,78 @@
 
 @section('vendor-style')
 <link rel="stylesheet" href="{{asset('assets/vendor/libs/sweetalert2/sweetalert2.css')}}">
+<style>
+.password-item {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 2px solid transparent !important;
+}
+
+.password-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.password-item.active {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+.password-strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.sidebar-scroll {
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+.password-generator {
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.copy-feedback {
+    position: relative;
+}
+
+.copy-feedback::after {
+    content: 'Copied!';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.copy-feedback.show::after {
+    opacity: 1;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+}
+
+.avatar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+</style>
 @endsection
 
 @section('vendor-script')
@@ -12,53 +84,74 @@
 
 @section('content')
 <div class="container-fluid h-100">
-    <div class="row g-6 h-100">
-        <!-- Password List Navigation -->
+    <div class="row g-4 h-100">
+        <!-- Password List Sidebar -->
         <div class="col-12 col-lg-4">
-            <div class="card mb-6 h-100">
+            <div class="card h-100">
+                <!-- Header -->
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">Passwords</h4>
-                    <div class="dropdown">
-                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="ri-add-line me-1"></i> Add
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#createPasswordModal">
-                                <i class="ri-key-line me-2"></i>New Password
-                            </a></li>
-                        </ul>
-                    </div>
+                    <h4 class="mb-0">
+                        <i class="ri-shield-keyhole-line me-2"></i>
+                        Passwords
+                        <span class="badge bg-label-primary ms-2" id="passwordCount">{{ count($passwords) }}</span>
+                    </h4>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createPasswordModal">
+                        <i class="ri-add-line me-1"></i> Add
+                    </button>
                 </div>
                 
-                <!-- Search Bar -->
+                <!-- Search and Filters -->
                 <div class="card-body pb-2">
                     <div class="input-group mb-3">
                         <span class="input-group-text"><i class="ri-search-line"></i></span>
                         <input type="text" class="form-control" id="searchInput" placeholder="Search passwords...">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                            <i class="ri-filter-3-line"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="collapse" id="filterCollapse">
+                        <div class="border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <label class="form-label small">Category</label>
+                                    <select class="form-select form-select-sm" id="categoryFilter">
+                                        <option value="all">All Categories</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Password List -->
-                <div class="card-body pt-0 h-100" style="max-height: 70vh; overflow-y: auto;">
+                <div class="card-body pt-0 sidebar-scroll">
                     <div id="passwordList">
-                        @if($passwords->count() > 0)
+                        @if(count($passwords) > 0)
                             @foreach($passwords as $password)
-                                <div class="password-item border rounded p-3 mb-2 cursor-pointer" data-id="{{ $password->id }}">
+                                <div class="password-item border rounded p-3 mb-2" data-id="{{ $password['id'] }}">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar me-3">
-                                            @if($password->icon)
-                                                <img src="{{ $password->icon }}" alt="Icon" class="rounded">
+                                            @if($password['icon'])
+                                                <img src="{{ $password['icon'] }}" alt="Icon" class="rounded">
                                             @else
-                                                <div class="avatar-initial rounded" style="background-color: {{ $password->color ?? '#007bff' }}">
-                                                    {{ strtoupper(substr($password->name, 0, 2)) }}
+                                                <div class="avatar-initial rounded" style="background-color: {{ $password['color'] }}">
+                                                    {{ strtoupper(substr($password['name'], 0, 2)) }}
                                                 </div>
                                             @endif
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0">{{ $password->name }}</h6>
-                                            <small class="text-muted">
-                                                {{ $password->username ?? $password->email ?? 'No username' }}
+                                        <div class="flex-grow-1 min-width-0">
+                                            <h6 class="mb-0 text-truncate">{{ $password['name'] }}</h6>
+                                            <small class="text-muted text-truncate d-block">
+                                                {{ $password['username'] ?: $password['email'] ?: 'No username' }}
                                             </small>
+                                            @if($password['category'])
+                                                <span class="badge bg-label-secondary badge-sm mt-1">{{ $password['category'] }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">{{ $password['updated_at'] }}</small>
                                         </div>
                                     </div>
                                 </div>
@@ -79,10 +172,11 @@
         </div>
 
         <!-- Password Details -->
-        <div class="col-12 col-lg-8 pt-6 pt-lg-0">
+        <div class="col-12 col-lg-8">
             <div id="passwordDetails" class="d-none">
-                <div class="card mb-6 bg-transparent shadow-none">
-                    <div class="card-header d-flex justify-content-between align-items-center px-0">
+                <div class="card">
+                    <!-- Header -->
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center">
                             <div class="me-3" id="passwordIcon">
                                 <!-- Icon will be populated by JavaScript -->
@@ -100,6 +194,10 @@
                                 <li><a class="dropdown-item" href="#" onclick="editPassword()">
                                     <i class="ri-edit-line me-2"></i>Edit
                                 </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="duplicatePassword()">
+                                    <i class="ri-file-copy-line me-2"></i>Duplicate
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="#" onclick="deletePassword()">
                                     <i class="ri-delete-bin-line me-2"></i>Delete
                                 </a></li>
@@ -107,49 +205,76 @@
                         </div>
                     </div>
                     
-                    <div class="card-body px-0">
+                    <div class="card-body">
+                        <!-- Quick Actions -->
+                        <div class="row mb-4">
+                            <div class="col-6 col-md-3">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="copyToClipboard('username')">
+                                    <i class="ri-user-line me-1"></i> Copy Username
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="copyToClipboard('password')">
+                                    <i class="ri-key-line me-1"></i> Copy Password
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3" id="websiteAction">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="openWebsite()">
+                                    <i class="ri-external-link-line me-1"></i> Open Website
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="editPassword()">
+                                    <i class="ri-edit-line me-1"></i> Edit
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Credentials Section -->
-                        <div class="mb-6 border rounded-3">
-                            <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="usernameSection">
-                                <div>
-                                    <h6 class="mb-0 text-primary">Username</h6>
-                                    <span id="passwordUsername"></span>
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('username')">
-                                    <i class="ri-file-copy-line"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="emailSection">
-                                <div>
-                                    <h6 class="mb-0 text-primary">Email</h6>
-                                    <span id="passwordEmail"></span>
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('email')">
-                                    <i class="ri-file-copy-line"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="phoneSection">
-                                <div>
-                                    <h6 class="mb-0 text-primary">Phone</h6>
-                                    <span id="passwordPhone"></span>
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('phone')">
-                                    <i class="ri-file-copy-line"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between align-items-center p-3">
-                                <div>
-                                    <h6 class="mb-0 text-primary">Password</h6>
-                                    <span id="passwordValue" class="password-hidden">••••••••••</span>
-                                </div>
-                                <div class="btn-group">
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="togglePasswordVisibility()">
-                                        <i class="ri-eye-line" id="passwordToggleIcon"></i>
+                        <div class="mb-4">
+                            <h6 class="mb-3">Credentials</h6>
+                            <div class="border rounded">
+                                <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="usernameSection">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label mb-1 small text-muted">USERNAME</label>
+                                        <div id="passwordUsername" class="fw-medium"></div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary copy-feedback" onclick="copyToClipboard('username')">
+                                        <i class="ri-file-copy-line"></i>
                                     </button>
-                                    <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('password')">
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="emailSection">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label mb-1 small text-muted">EMAIL</label>
+                                        <div id="passwordEmail" class="fw-medium"></div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary copy-feedback" onclick="copyToClipboard('email')">
+                                        <i class="ri-file-copy-line"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center border-bottom p-3" id="phoneSection">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label mb-1 small text-muted">PHONE</label>
+                                        <div id="passwordPhone" class="fw-medium"></div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary copy-feedback" onclick="copyToClipboard('phone')">
+                                        <i class="ri-file-copy-line"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center p-3">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label mb-1 small text-muted">PASSWORD</label>
+                                        <div class="d-flex align-items-center">
+                                            <span id="passwordValue" class="password-hidden fw-medium me-2">••••••••••</span>
+                                            <button class="btn btn-sm btn-link p-0 me-2" onclick="togglePasswordVisibility()">
+                                                <i class="ri-eye-line" id="passwordToggleIcon"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary copy-feedback" onclick="copyToClipboard('password')">
                                         <i class="ri-file-copy-line"></i>
                                     </button>
                                 </div>
@@ -157,23 +282,27 @@
                         </div>
 
                         <!-- Website Section -->
-                        <div class="mb-6" id="websiteSection">
-                            <h6 class="mb-2 text-primary">Website</h6>
-                            <a href="#" id="passwordUrl" target="_blank" class="text-decoration-none">
-                                <i class="ri-external-link-line me-1"></i>
-                                <span id="passwordUrlText"></span>
-                            </a>
+                        <div class="mb-4" id="websiteSection">
+                            <h6 class="mb-2">Website</h6>
+                            <div class="border rounded p-3">
+                                <a href="#" id="passwordUrl" target="_blank" class="text-decoration-none d-flex align-items-center">
+                                    <i class="ri-external-link-line me-2"></i>
+                                    <span id="passwordUrlText"></span>
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Notes Section -->
-                        <div class="mb-6" id="notesSection">
-                            <h6 class="mb-2 text-primary">Notes</h6>
-                            <p class="text-body" id="passwordNotes"></p>
+                        <div class="mb-4" id="notesSection">
+                            <h6 class="mb-2">Notes</h6>
+                            <div class="border rounded p-3">
+                                <p class="mb-0" id="passwordNotes"></p>
+                            </div>
                         </div>
 
                         <!-- Tags Section -->
-                        <div class="mb-6" id="tagsSection">
-                            <h6 class="mb-2 text-primary">Tags</h6>
+                        <div class="mb-4" id="tagsSection">
+                            <h6 class="mb-2">Tags</h6>
                             <div id="passwordTags"></div>
                         </div>
 
@@ -182,275 +311,11 @@
                             <div class="col-6">
                                 <strong>Created:</strong> <span id="passwordCreated"></span>
                             </div>
-                            <div class="col-6">
+                            <div class="col-6 text-end">
                                 <strong>Updated:</strong> <span id="passwordUpdated"></span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="text-center py-5">
-                <i class="ri-shield-keyhole-line ri-5x text-muted mb-4"></i>
-                <h4 class="text-muted">Select a password to view details</h4>
-                <p class="text-muted">Choose a password from the list to see its information</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Create Password Modal -->
-@include('content.vault.modals.create')
-
-<!-- Edit Password Modal -->
-@include('content.vault.modals.edit')
-
-@endsection
-
-@section('page-script')
-<script>
-let currentPasswordId = null;
-let currentPasswordData = null;
-
-$(document).ready(function() {
-    // Handle password item clicks
-    $(document).on('click', '.password-item', function() {
-        const passwordId = $(this).data('id');
-        loadPasswordDetails(passwordId);
-        
-        // Update active state
-        $('.password-item').removeClass('active border-primary');
-        $(this).addClass('active border-primary');
-    });
-
-    // Search functionality
-    $('#searchInput').on('input', function() {
-        const query = $(this).val();
-        if (query.length > 0) {
-            searchPasswords(query);
-        } else {
-            location.reload(); // Reload to show all passwords
-        }
-    });
-
-    // Auto-select first password if available
-    if ($('.password-item').length > 0) {
-        $('.password-item').first().click();
-    }
-});
-
-function loadPasswordDetails(passwordId) {
-    currentPasswordId = passwordId;
-    
-    $.ajax({
-        url: `/vault/${passwordId}`,
-        method: 'GET',
-        success: function(data) {
-            currentPasswordData = data;
-            displayPasswordDetails(data);
-        },
-        error: function() {
-            Swal.fire('Error', 'Failed to load password details', 'error');
-        }
-    });
-}
-
-function displayPasswordDetails(data) {
-    // Update icon
-    if (data.icon) {
-        $('#passwordIcon').html(`<img src="${data.icon}" width="50" class="rounded" alt="Icon">`);
-    } else {
-        $('#passwordIcon').html(`<div class="avatar-initial rounded" style="background-color: ${data.color}; width: 50px; height: 50px; line-height: 50px; font-size: 18px;">${data.name.substring(0, 2).toUpperCase()}</div>`);
-    }
-
-    // Update basic info
-    $('#passwordName').text(data.name);
-    $('#passwordCategory').text(data.category || 'Uncategorized');
-
-    // Update credentials (show/hide sections based on data)
-    updateCredentialSection('usernameSection', 'passwordUsername', data.username);
-    updateCredentialSection('emailSection', 'passwordEmail', data.email);
-    updateCredentialSection('phoneSection', 'passwordPhone', data.phone);
-    $('#passwordValue').text('••••••••••').removeClass('password-visible').addClass('password-hidden');
-
-    // Update website
-    if (data.url) {
-        $('#passwordUrl').attr('href', data.url);
-        $('#passwordUrlText').text(data.url);
-        $('#websiteSection').show();
-    } else {
-        $('#websiteSection').hide();
-    }
-
-    // Update notes
-    if (data.notes) {
-        $('#passwordNotes').text(data.notes);
-        $('#notesSection').show();
-    } else {
-        $('#notesSection').hide();
-    }
-
-    // Update tags
-    if (data.tags && data.tags.length > 0) {
-        let tagsHtml = '';
-        data.tags.forEach(tag => {
-            tagsHtml += `<span class="badge bg-label-primary me-1 mb-1">${tag.trim()}</span>`;
-        });
-        $('#passwordTags').html(tagsHtml);
-        $('#tagsSection').show();
-    } else {
-        $('#tagsSection').hide();
-    }
-
-    // Update metadata
-    $('#passwordCreated').text(data.created_at);
-    $('#passwordUpdated').text(data.updated_at);
-
-    // Show details panel
-    $('#emptyState').hide();
-    $('#passwordDetails').removeClass('d-none');
-}
-
-function updateCredentialSection(sectionId, valueId, value) {
-    if (value) {
-        $(`#${valueId}`).text(value);
-        $(`#${sectionId}`).show();
-    } else {
-        $(`#${sectionId}`).hide();
-    }
-}
-
-function togglePasswordVisibility() {
-    const passwordElement = $('#passwordValue');
-    const toggleIcon = $('#passwordToggleIcon');
-    
-    if (passwordElement.hasClass('password-hidden')) {
-        passwordElement.text(currentPasswordData.password)
-                    .removeClass('password-hidden')
-                    .addClass('password-visible');
-        toggleIcon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
-    } else {
-        passwordElement.text('••••••••••')
-                    .removeClass('password-visible')
-                    .addClass('password-hidden');
-        toggleIcon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
-    }
-}
-
-function copyToClipboard(field) {
-    let textToCopy = '';
-    
-    switch(field) {
-        case 'username':
-            textToCopy = currentPasswordData.username;
-            break;
-        case 'email':
-            textToCopy = currentPasswordData.email;
-            break;
-        case 'phone':
-            textToCopy = currentPasswordData.phone;
-            break;
-        case 'password':
-            textToCopy = currentPasswordData.password;
-            break;
-    }
-    
-    if (textToCopy) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            // Show temporary success feedback
-            const button = event.target.closest('button');
-            const originalIcon = button.innerHTML;
-            button.innerHTML = '<i class="ri-check-line text-success"></i>';
-            setTimeout(() => {
-                button.innerHTML = originalIcon;
-            }, 1000);
-        });
-    }
-}
-
-function editPassword() {
-    if (currentPasswordData) {
-        // Populate edit form with current data
-        $('#editPasswordId').val(currentPasswordData.id);
-        $('#editName').val(currentPasswordData.name);
-        $('#editUsername').val(currentPasswordData.username);
-        $('#editEmail').val(currentPasswordData.email);
-        $('#editPhone').val(currentPasswordData.phone);
-        $('#editPassword').val(currentPasswordData.password);
-        $('#editUrl').val(currentPasswordData.url);
-        $('#editNotes').val(currentPasswordData.notes);
-        $('#editCategory').val(currentPasswordData.category);
-        $('#editTags').val(currentPasswordData.tags ? currentPasswordData.tags.join(', ') : '');
-        $('#editColor').val(currentPasswordData.color);
-        
-        $('#editPasswordModal').modal('show');
-    }
-}
-
-function deletePassword() {
-    if (currentPasswordId) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to recover this password!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: `/vault/${currentPasswordId}`,
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function() {
-                        Swal.fire('Deleted!', 'Password has been deleted.', 'success');
-                        location.reload();
-                    },
-                    error: function() {
-                        Swal.fire('Error', 'Failed to delete password', 'error');
-                    }
-                });
-            }
-        });
-    }
-}
-
-function searchPasswords(query) {
-    $.ajax({
-        url: '/vault/search',
-        method: 'GET',
-        data: { q: query },
-        success: function(passwords) {
-            let html = '';
-            if (passwords.length > 0) {
-                passwords.forEach(password => {
-                    html += `
-                        <div class="password-item border rounded p-3 mb-2 cursor-pointer" data-id="${password.id}">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar me-3">
-                                    ${password.icon ? 
-                                        `<img src="${password.icon}" alt="Icon" class="rounded">` : 
-                                        `<div class="avatar-initial rounded" style="background-color: ${password.color || '#007bff'}">${password.name.substring(0, 2).toUpperCase()}</div>`
-                                    }
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">${password.name}</h6>
-                                    <small class="text-muted">${password.username || password.email || 'No username'}</small>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                html = '<div class="text-center py-3"><p class="text-muted">No passwords found</p></div>';
-            }
-            $('#passwordList').html(html);
-        }
-    });
-}
-</script>
-@endsection
+            

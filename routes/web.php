@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\ValutsController;
+use App\Http\Controllers\VaultsController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -41,7 +41,7 @@ Route::group(['middleware' => 'auth'], function(){
     Route::get('/user/setting',[SettingController::class, 'index'])->name('user.setting');
     Route::get('/user/activity',[ActivityLogController::class, 'index'])->name('user.activity');
 
-    Route::get('vault', [ValutsController::class, 'index'])->name('vault');
+    Route::get('vault', [VaultsController::class, 'index'])->name('vault');
 
 
 
