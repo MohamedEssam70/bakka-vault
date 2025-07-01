@@ -1,0 +1,19 @@
+{
+  "menu": [
+    {
+        "url": "home",
+        "name": "Dashboard",
+        "icon": "menu-icon tf-icons bx bx-home-circle",
+        "slug": "home"
+    },
+    {
+      "menuHeader": ""
+    },
+    {
+      "url": "vault",
+      "name": "Vault",
+      "icon": "menu-icon tf-icons fa-solid fa-vault fa-sm",
+      "slug": "vault"
+    }
+  ]
+}
